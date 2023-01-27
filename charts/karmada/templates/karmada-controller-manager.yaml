@@ -51,7 +51,7 @@ spec:
           command:
             - sh
             - -c
-            - until kubectl --kubeconfig /etc/kubeconfig cluster-info; do sleep 10; done
+            - until kubectl --kubeconfig /etc/kubeconfig get --raw=/readyz; do sleep 10; done
       containers:
         - name: {{ $name }}-controller-manager
           image: {{ template "karmada.controllerManager.image" . }}

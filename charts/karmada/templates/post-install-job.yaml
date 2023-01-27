@@ -81,6 +81,16 @@ spec:
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     spec:
       restartPolicy: Never
+      initContainers:
+        - name: init
+          image: {{ template "karmada.kubectl.image" . }}
+          imagePullPolicy: {{ .Values.kubectl.image.pullPolicy }}
+          volumeMounts:
+            {{- include "karmada.kubeconfig.volumeMount" . | nindent 12 }}
+          command:
+            - sh
+            - -c
+            - until kubectl --kubeconfig /etc/kubeconfig get --raw=/readyz; do sleep 10; done
       containers:
       - name: post-install
         image: {{ template "karmada.kubectl.image" . }}
@@ -91,7 +101,6 @@ spec:
         - |
           bash <<'EOF'
           set -ex
-          until kubectl --kubeconfig /etc/kubeconfig cluster-info; do sleep 10; done
           kubectl apply -k /crds --kubeconfig /etc/kubeconfig
           kubectl apply -f /static-resources --kubeconfig /etc/kubeconfig
           EOF
