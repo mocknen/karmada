@@ -30,7 +30,7 @@ spec:
       automountServiceAccountToken: false
       initContainers:
         - name: init
-          image: {{ template "karmada.internal.etcd.image" . }}
+          image: bitnami/etcd
           volumeMounts:
             - name: etcd-cert
               mountPath: /etc/etcd/pki
