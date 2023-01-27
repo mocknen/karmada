@@ -28,6 +28,22 @@ spec:
     spec:
       {{- include "karmada.apiServer.imagePullSecrets" . | nindent 6 }}
       automountServiceAccountToken: false
+      initContainers:
+        - name: init
+          image: {{ template "karmada.internal.etcd.image" . }}
+          volumeMounts:
+            - name: etcd-cert
+              mountPath: /etc/etcd/pki
+              readOnly: true
+          command:
+            - sh
+            - -c
+            {{- if eq .Values.etcd.mode "external" }}
+            - until etcdctl --endpoints {{ .Values.etcd.external.servers }} --cacert /etc/etcd/pki/ca.crt --cert /etc/etcd/pki/tls.crt --key /etc/etcd/pki/tls.key endpoint health; do sleep 10; done
+            {{- end }}
+            {{- if eq .Values.etcd.mode "internal" }}
+            - until etcdctl --endpoints https://etcd-client.{{ include "karmada.namespace" . }}.svc.{{ .Values.clusterDomain }}:2379 --cacert /etc/etcd/pki/server-ca.crt --cert /etc/etcd/pki/karmada.crt --key /etc/etcd/pki/karmada.key endpoint health; do sleep 10; done
+            {{- end }}
       containers:
         - name: {{ $name }}-apiserver
           image: {{ template "karmada.apiServer.image" . }}
@@ -78,6 +94,13 @@ spec:
             - name: http
               containerPort: 5443
               protocol: TCP
+          startupProbe:
+            failureThreshold: 30
+            httpGet:
+              path: /livez
+              port: 5443
+              scheme: HTTPS
+            timeoutSeconds: 15
           livenessProbe:
             failureThreshold: 8
             httpGet:

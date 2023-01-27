@@ -41,6 +41,16 @@ spec:
       tolerations:
       {{- toYaml . | nindent 8 }}
       {{- end }}
+      initContainers:
+        - name: init
+          image: {{ template "karmada.kubectl.image" . }}
+          imagePullPolicy: {{ .Values.kubectl.image.pullPolicy }}
+          volumeMounts:
+            {{- include "karmada.kubeconfig.volumeMount" . | nindent 12 }}
+          command:
+            - sh
+            - -c
+            - until kubectl --kubeconfig /etc/kubeconfig cluster-info; do sleep 10; done
       containers:
         - command:
             - kube-controller-manager

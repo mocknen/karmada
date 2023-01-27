@@ -91,6 +91,7 @@ spec:
         - |
           bash <<'EOF'
           set -ex
+          until kubectl --kubeconfig /etc/kubeconfig cluster-info; do sleep 10; done
           kubectl apply -k /crds --kubeconfig /etc/kubeconfig
           kubectl apply -f /static-resources --kubeconfig /etc/kubeconfig
           EOF
