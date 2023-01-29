@@ -35,15 +35,31 @@ spec:
             - name: etcd-cert
               mountPath: /etc/etcd/pki
               readOnly: true
+          env:
+            {{- if eq .Values.etcd.mode "external" }}
+            - name: ETCDCTL_ENDPOINTS
+              value: {{ .Values.etcd.external.servers }}
+            - name: ETCDCTL_CACERT
+              value: /etc/etcd/pki/ca.crt
+            - name: ETCDCTL_CERT
+              value: /etc/etcd/pki/tls.crt
+            - name: ETCDCTL_KEY
+              value: /etc/etcd/pki/tls.key
+            {{- end }}
+            {{- if eq .Values.etcd.mode "internal" }}
+            - name: ETCDCTL_ENDPOINTS
+              value: https://etcd-client.{{ include "karmada.namespace" . }}.svc.{{ .Values.clusterDomain }}:2379
+            - name: ETCDCTL_CACERT
+              value: /etc/etcd/pki/server-ca.crt
+            - name: ETCDCTL_CERT
+              value: /etc/etcd/pki/karmada.crt
+            - name: ETCDCTL_KEY
+              value: /etc/etcd/pki/karmada.key
+            {{- end }}
           command:
             - sh
             - -c
-            {{- if eq .Values.etcd.mode "external" }}
-            - until etcdctl --endpoints {{ .Values.etcd.external.servers }} --cacert /etc/etcd/pki/ca.crt --cert /etc/etcd/pki/tls.crt --key /etc/etcd/pki/tls.key endpoint health; do sleep 10; done
-            {{- end }}
-            {{- if eq .Values.etcd.mode "internal" }}
-            - until etcdctl --endpoints https://etcd-client.{{ include "karmada.namespace" . }}.svc.{{ .Values.clusterDomain }}:2379 --cacert /etc/etcd/pki/server-ca.crt --cert /etc/etcd/pki/karmada.crt --key /etc/etcd/pki/karmada.key endpoint health; do sleep 10; done
-            {{- end }}
+            - until etcdctl endpoint health; do sleep 10; done
       containers:
         - name: {{ $name }}-apiserver
           image: {{ template "karmada.apiServer.image" . }}
