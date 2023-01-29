@@ -7,6 +7,9 @@ metadata:
   namespace: {{ include "karmada.namespace" . }}
   labels:
   {{- include "karmada.cm.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": post-install
+    "helm.sh/hook-weight": "1"
 spec:
   replicas: {{  .Values.controllerManager.replicaCount }}
   selector:
@@ -42,16 +45,6 @@ spec:
       {{- end }}
       volumes:
       {{- include "karmada.kubeconfig.volume" . | nindent 8 }}
-      initContainers:
-        - name: init
-          image: {{ template "karmada.kubectl.image" . }}
-          imagePullPolicy: {{ .Values.kubectl.image.pullPolicy }}
-          volumeMounts:
-            {{- include "karmada.kubeconfig.volumeMount" . | nindent 12 }}
-          command:
-            - sh
-            - -c
-            - until kubectl --kubeconfig /etc/kubeconfig get --raw=/readyz; do sleep 10; done
       containers:
         - name: {{ $name }}-controller-manager
           image: {{ template "karmada.controllerManager.image" . }}
